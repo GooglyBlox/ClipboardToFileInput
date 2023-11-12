@@ -3,6 +3,9 @@
 ## Overview
 ClipboardToFileInput is a Chrome extension that enables pasting clipboard content directly into file input fields on web pages. It was made solely because it was extremely inconvenient not being able to do so on Google Chrome natively, since OperaGX is able to do so natively.
 
+## Preview
+![Demo](https://github.com/GooglyBlox/ClipboardToFileInput/blob/main/preview.gif?raw=true)
+
 ## Installation
 1. Clone this repository or download the ZIP file.
 2. Open Chrome and navigate to `chrome://extensions/`.
