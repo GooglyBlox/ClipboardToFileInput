@@ -1,0 +1,26 @@
+{
+    "manifest_version": 3,
+    "name": "Clipboard to File Input",
+    "version": "1.0",
+    "description": "Allows pasting from clipboard into file inputs.",
+    "permissions": ["clipboardRead"],
+    "action": {
+        "default_popup": "popup.html",
+        "default_icon": "icon.png"
+    },
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": ["<all_urls>"],
+            "js": ["content.js"]
+        }
+    ],
+    "icons": {
+        "48": "icon.png"
+    },
+    "host_permissions": [
+        "<all_urls>"
+    ]
+}
