@@ -15,7 +15,8 @@ ClipboardToFileInput is a Chrome extension that enables pasting clipboard conten
 - Click `Cancel` on the opened File Manager window (not needed if you used the prior alternative).
 - Press `Ctrl+V` (or `Cmd+V` on Mac) to paste the file.
 
-
+## Contributing
+Contributions are welcome. Please fork the repository and submit a pull request with your changes.
 
 ## License
 This project is open source and available under the [MIT License](LICENSE).
