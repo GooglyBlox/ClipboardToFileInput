@@ -18,7 +18,9 @@
         }
     ],
     "icons": {
-        "48": "icon.png"
+        "48": "icon48.png",
+        "96": "icon96.png",
+        "128": "icon128.png"
     },
     "host_permissions": [
         "<all_urls>"
