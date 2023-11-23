@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Clipboard to File Input",
-    "version": "1.0",
+    "version": "2.0",
     "description": "Allows pasting from clipboard into file inputs.",
     "permissions": ["clipboardRead"],
     "action": {
