@@ -18,6 +18,21 @@ ClipboardToFileInput is a Chrome extension that enables pasting clipboard conten
 - Click `Paste` to paste your clipboard content (accept clipboard permissions if prompted).
 - Click `Browse Files` to input files from your filesystem instead of clipboard.
 
+## Submit Issues
+
+Feedback is greatly appreciated! If you encounter any issues or have suggestions for improvements, please submit them through the GitHub Issues page.
+
+### How to Submit an Issue
+1. Navigate to the [Issues section](https://github.com/GooglyBlox/ClipboardToFileInput/issues) of this repository.
+2. Before creating a new issue, please check to see if an issue has already been filed for your concern.
+3. If your issue is new, click on `New Issue`.
+4. Provide a descriptive title for your issue.
+5. In the description box, clearly explain the issue or suggestion. Include steps to reproduce the issue, if applicable.
+6. Feel free to attach screenshots or any relevant files that would help us understand the issue better.
+7. Submit the issue.
+
+Your feedback really helps me make this better for everyone. Thank you for your contributions!
+
 ## Contributing
 Contributions are welcome. Please fork the repository and submit a pull request with your changes.
 
