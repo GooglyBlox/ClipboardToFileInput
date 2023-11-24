@@ -1,0 +1,1 @@
+// empty for now, may need service workers for future updates though

@@ -28,7 +28,44 @@ function applyButtonStyles(button) {
     button.onmouseleave = () => button.style.backgroundColor = '#007BFF';
 }
 
-function showCustomFileUploadOverlay(fileInput) {
+function createImagePreviewElement() {
+    const imagePreview = document.createElement('img');
+    Object.assign(imagePreview.style, {
+        maxWidth: '600px',
+        maxHeight: '600px',
+        height: 'auto',
+        borderRadius: '5px',
+        border: '1px solid #ccc',
+        padding: '5px',
+        backgroundColor: '#f8f8f8',
+        objectFit: 'contain',
+        marginBottom: '10px',
+        display: 'block',
+        margin: '0 auto'
+    });
+    return imagePreview;
+}
+
+function createSpacerElement(height) {
+    const spacer = document.createElement('div');
+    spacer.style.height = height + 'px';
+    return spacer;
+}
+
+function createTextLabelElement(text) {
+    const label = document.createElement('div');
+    label.textContent = text;
+    Object.assign(label.style, {
+        color: '#000',
+        fontWeight: 'bold',
+        textAlign: 'center',
+        marginBottom: '10px'
+    });
+    return label;
+}
+
+
+async function showCustomFileUploadOverlay(fileInput) {
     if (isBrowseButtonClicked) {
         isBrowseButtonClicked = false; 
         return;
@@ -62,6 +99,28 @@ function showCustomFileUploadOverlay(fileInput) {
         removeOverlay(existingOverlay);
         fileInput.click();
     };
+
+    const imagePreview = createImagePreviewElement();
+    const imageLabel = createTextLabelElement("Image Preview");
+
+    container.insertBefore(imagePreview, container.firstChild);
+
+    try {
+        const clipboardImage = await getClipboardImage();
+        if (clipboardImage) {
+            imagePreview.src = clipboardImage;
+
+            container.insertBefore(imageLabel, imagePreview);
+            const spacer = createSpacerElement(20);
+            container.insertBefore(spacer, imagePreview.nextSibling);
+        } else {
+            imagePreview.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error retrieving clipboard image:', error);
+        imagePreview.style.display = 'none';
+        imageLabel.style.display = 'none';
+    }
 
     container.append(pasteButton, browseButton);
     existingOverlay.append(container);
@@ -257,6 +316,22 @@ function handleFileInputInteraction(fileInput) {
         } 
     });
 }
+
+async function getClipboardImage() {
+    try {
+        const clipboardItems = await navigator.clipboard.read();
+        for (const item of clipboardItems) {
+            if (item.types.includes('image/png')) {
+                const blob = await item.getType('image/png');
+                return URL.createObjectURL(blob);
+            }
+        }
+    } catch (error) {
+        console.error('Error reading clipboard image:', error);
+    }
+    return null;
+}
+
 
 function findNearestFileInput(element) {
     let currentElement = element;
