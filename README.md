@@ -7,7 +7,7 @@ ClipboardToFileInput is a Chrome extension that enables pasting clipboard conten
 ![Demo](https://github.com/GooglyBlox/ClipboardToFileInput/blob/main/preview.gif?raw=true)
 
 ## Installation
-1. Clone this repository or download the ZIP file.
+1. Clone this repository or [download the ZIP file](https://github.com/GooglyBlox/ClipboardToFileInput/releases).
 2. Open Chrome and navigate to `chrome://extensions/`.
 3. Enable Developer Mode.
 4. Click 'Load unpacked' and select the extension directory.
