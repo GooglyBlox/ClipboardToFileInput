@@ -1,7 +1,10 @@
 # ClipboardToFileInput
 
 ## Overview
-ClipboardToFileInput is a Chrome extension that enables pasting clipboard content directly into file input fields on web pages. It was made solely because it was extremely inconvenient not being able to do so on Google Chrome natively, since OperaGX is able to do so natively. The goal is to put this on the Google Chrome Web Store soon! Once I'm confident this is production ready, I'll put it up and attach a link to this repository. The extension will always stay open source, and updates on the Chrome Web Store version will be reflected in this repository.
+ClipboardToFileInput is a Chrome extension that enables pasting clipboard content directly into file input fields on web pages. It was made solely because it was extremely inconvenient not being able to do so on Google Chrome natively, since OperaGX is able to do so natively. The goal is to put this on the Google Chrome Web Store soon! Once I'm confident this is production-ready, I'll put it up and attach a link to this repository. The extension will always stay open source, and updates on the Chrome Web Store version will be reflected in this repository.
+
+## ⚠️NOTICE
+This extension CANNOT read your file system. That means that pasting items from your file system is not possible (due to Chrome's restrictive extension permissions). You can only paste what was copied from within your browser.
 
 ## Preview
 ![Demo](https://github.com/GooglyBlox/ClipboardToFileInput/blob/main/images/preview.gif?raw=true)
@@ -27,7 +30,7 @@ Feedback is greatly appreciated! If you encounter any issues or have suggestions
 2. Before creating a new issue, please check to see if an issue has already been filed for your concern.
 3. If your issue is new, click on `New Issue`.
 4. Provide a descriptive title for your issue.
-5. In the description box, clearly explain the issue or suggestion. Include steps to reproduce the issue, if applicable.
+5. In the description box, clearly explain the issue or suggestion. Include steps to reproduce the issue, if applicable. Be sure to note which websites the extension isn't functioning on.
 6. Feel free to attach screenshots or any relevant files that would help us understand the issue better.
 7. Submit the issue.
 
