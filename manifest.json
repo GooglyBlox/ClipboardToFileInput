@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Clipboard to File Input",
     "version": "2.1",
-    "description": "Allows pasting from clipboard into file inputs.",
+    "description": "Allows pasting from clipboard into file inputs. Source: https://github.com/GooglyBlox/ClipboardToFileInput",
     "permissions": ["clipboardRead"],
     "action": {
         "default_popup": "popup.html",
