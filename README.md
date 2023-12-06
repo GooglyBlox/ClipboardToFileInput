@@ -20,6 +20,7 @@ This extension CANNOT read your file system. That means that pasting items from 
 - Click on any file input field.
 - Click `Paste` to paste your clipboard content (accept clipboard permissions if prompted).
 - Click `Browse Files` to input files from your filesystem instead of clipboard.
+- Drag and Drop files from your file system to the overlay box for ease-of-upload from your file manager.
 
 ## Submit Issues
 
