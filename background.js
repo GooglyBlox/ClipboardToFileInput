@@ -1,5 +1,3 @@
-// background.js
-
 let originTabId = null;
 let helperTabId = null;
 
