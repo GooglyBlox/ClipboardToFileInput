@@ -123,18 +123,6 @@ function preventDefaultClickHandler(event) {
     event.preventDefault();
 }
 
-function handleFileInput(fileInput) {
-    fileInput.addEventListener('click', (event) => {
-        if (!isBrowseButtonClicked) {
-            event.preventDefault();
-        } else {
-            isBrowseButtonClicked = false;
-        }
-    });
-
-    showCustomFileUploadOverlay(fileInput);
-}
-
 function findNearestFileInput(element) { // why do I have this here again..? I'm almost afraid to delete it
     let currentElement = element;
     let searchDepth = 0;
@@ -220,7 +208,6 @@ async function showCustomFileUploadOverlay(fileInput) {
     imageLabel.style.display = 'none';
 
     container.appendChild(imageLabel);
-    container.appendChild(imagePreview);
 
     if (clipboardData && clipboardData.mimeType.startsWith('image/')) {
         imagePreview.src = clipboardData.fileDataUrl;
@@ -375,15 +362,6 @@ function pasteFileIntoInput(fileInput, data) {
 }
 
 // --- Event Handlers ---
-function handleFileInputInteraction(fileInput) {
-    fileInput.addEventListener('click', (event) => {
-        if (shouldPreventDefault(fileInput)) {
-            event.preventDefault();
-            showCustomFileUploadOverlay(fileInput);
-        } 
-    });
-}
-
 function shouldPreventDefault(fileInput) {
     return !isBrowseButtonClicked;
 }
@@ -425,22 +403,60 @@ document.addEventListener('paste', async function(event) {
     }
 });
 
-document.addEventListener('click', function(event) {
-    if (event.target.tagName.toLowerCase() === 'input' && event.target.type === 'file' && !event.target.hasAttribute('webkitdirectory')) {
-        handleFileInputInteraction(event.target);
+document.addEventListener("click", async (event) => {
+    let target;
+  
+    if (event.target.matches("input[type=file]:not([webkitdirectory])")) {
+        target = event.target;
+    } else {
+        const path = event.path || (event.composedPath && event.composedPath());
+        if (path && path[0].matches("input[type=file]:not([webkitdirectory])")) {
+        target = path[0];
+        }
     }
-}, true);
+  
+    if (target) {
+        handleNewFileInput(target);
+    }
+  });
 
-const observer = new MutationObserver(mutations => {
-    console.debug('Mutation observed:', mutations);
-    mutations.forEach(mutation => {
-        mutation.addedNodes.forEach(node => {
-            if (node.nodeType === Node.ELEMENT_NODE && node.tagName.toLowerCase() === 'input' && node.type === 'file') {
-                if (isHidden(node)) {
-                    node.addEventListener('focus', () => handleFileInput(node));
-                } else {
-                    node.addEventListener('focus', () => showCustomFileUploadOverlay(node));
-                }
+
+function handleNewFileInput(fileInput) {
+    if (!fileInput.__customFileUploadHandled) {
+        fileInput.__customFileUploadHandled = true;
+
+        fileInput.addEventListener('click', (event) => {
+            if (shouldPreventDefault(fileInput)) {
+                event.preventDefault();
+                showCustomFileUploadOverlay(fileInput);
+            }
+        });
+
+        fileInput.addEventListener('paste', async (event) => {
+            const result = await pasteFileIntoInput(fileInput);
+            if (result.success) {
+                event.preventDefault();
+            } else {
+                console.error(result.error);
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            clipboardData = null;
+        });
+    }
+}
+
+const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+            if (node.nodeType === Node.ELEMENT_NODE && node.matches('input[type="file"]')) {
+                handleNewFileInput(node);
+            } else if (node.nodeType === Node.ELEMENT_NODE && node.hasChildNodes()) {
+                const fileInputs = node.querySelectorAll('input[type="file"]');
+                fileInputs.forEach((fileInput) => {
+                    handleNewFileInput(fileInput);
+                });
             }
         });
     });
