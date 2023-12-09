@@ -1,7 +1,13 @@
+// Dear user:
+// When I wrote this code, only god and I knew how it worked.
+// Now, only god knows it!
+// Will go back to clean up my code a little later.
+
 // --- Global Variables ---
 const originalStyles = {};
 let isBrowseButtonClicked = false;
 let dragEnterCounter = 0;
+let clipboardData = null;
 
 
 // --- Utility Functions ---
@@ -129,7 +135,7 @@ function handleFileInput(fileInput) {
     showCustomFileUploadOverlay(fileInput);
 }
 
-function findNearestFileInput(element) {
+function findNearestFileInput(element) { // why do I have this here again..? I'm almost afraid to delete it
     let currentElement = element;
     let searchDepth = 0;
     const maxDepth = 5;
@@ -151,6 +157,14 @@ function findNearestFileInput(element) {
     return null;
 }
 
+function dataURLtoBlob(dataurl) {
+    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+        bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n); // yes I know atob() is deprecated I'll deal with it later by replacing it with a typed array
+    while(n--){
+        u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], {type:mime});
+}
 
 // --- Overlay Functions ---
 async function showCustomFileUploadOverlay(fileInput) {
@@ -177,13 +191,11 @@ async function showCustomFileUploadOverlay(fileInput) {
     const pasteButton = document.createElement('button');
     pasteButton.textContent = 'Paste File';
     applyButtonStyles(pasteButton);
-    pasteButton.onclick = async () => {
-        const result = await pasteFileIntoInput(fileInput, existingOverlay);
-        if (result.success) {
-            removeOverlay(existingOverlay);
+    pasteButton.onclick = () => {
+        if (clipboardData) {
+            pasteFileIntoInput(fileInput, clipboardData);
         } else {
-            clipboardMessage.textContent = result.error || 'Error pasting file from clipboard';
-            clipboardMessage.style.display = 'block';
+            openClipboardHelper();
         }
     };
 
@@ -193,13 +205,32 @@ async function showCustomFileUploadOverlay(fileInput) {
     browseButton.onclick = () => {
         isBrowseButtonClicked = true;
         removeOverlay(existingOverlay);
-        fileInput.click();
+        triggerDefaultFileDialog(fileInput);
     };
+
+    fileInput.addEventListener('change', () => {
+        isBrowseButtonClicked = false;
+    }, { once: true });
+
 
     const imagePreview = createImagePreviewElement();
     const imageLabel = createTextLabelElement("Image Preview");
 
-    container.insertBefore(imagePreview, container.firstChild);
+    imagePreview.style.display = 'none';
+    imageLabel.style.display = 'none';
+
+    container.appendChild(imageLabel);
+    container.appendChild(imagePreview);
+
+    if (clipboardData && clipboardData.mimeType.startsWith('image/')) {
+        imagePreview.src = clipboardData.fileDataUrl;
+        imagePreview.style.display = 'block';
+        imageLabel.style.display = 'block';
+    }
+
+    if (!clipboardData && !isBrowseButtonClicked) {
+        openClipboardHelper();
+    }
 
     const clipboardMessage = document.createElement('div');
     Object.assign(clipboardMessage.style, {
@@ -209,31 +240,18 @@ async function showCustomFileUploadOverlay(fileInput) {
         display: 'none',
         marginBottom: '10px'
     });
-    clipboardMessage.textContent = 'No valid clipboard data found';
+    clipboardMessage.textContent = 'Awaiting image from clipboard...';
 
     container.appendChild(clipboardMessage);
-
-    const clipboardResult = await getClipboardImage();
-    if (clipboardResult.url) {
-        imagePreview.src = clipboardResult.url;
-        imagePreview.style.display = 'block';
-        container.insertBefore(imageLabel, imagePreview);
-        const spacer = createSpacerElement(20);
-        container.insertBefore(spacer, imagePreview.nextSibling);
-    } else {
-        console.error(clipboardResult.error);
-        clipboardMessage.textContent = clipboardResult.error;
-        clipboardMessage.style.display = 'block';
-        imagePreview.style.display = 'none';
-        imageLabel.style.display = 'none';
-    }
-
-    container.append(pasteButton, browseButton);
+    container.append(imageLabel, imagePreview, pasteButton, browseButton);
     existingOverlay.append(container);
     fadeInOverlay(existingOverlay);
     setupDragAndDropEvents(container, fileInput, imagePreview);
+    existingOverlay.onclick = () => {
+        clipboardData = null;
+        removeOverlay(existingOverlay);
+    };
 }
-
 
 function fadeInOverlay(overlay) {
     overlay.style.opacity = '0';
@@ -257,7 +275,7 @@ function setupCloseOverlayEvents(overlay) {
     });
 }
 
-function removeOverlayImmediately() {
+function removeOverlayImmediately() { // really just a second way for me to remove the overlay, its messy but I'll put in the work to clean it up later
     const overlay = document.getElementById('custom-file-upload-overlay');
     if (overlay && overlay.parentNode) {
         overlay.parentNode.removeChild(overlay);
@@ -341,119 +359,20 @@ function prepareFilesForUpload(fileInput, files) {
 
 
 // --- Clipboard Functions ---
-async function getClipboardImage() {
-    try {
-        const clipboardItems = await navigator.clipboard.read();
-        for (const item of clipboardItems) {
-            if (item.types.includes('image/png')) {
-                const blob = await item.getType('image/png');
-                return { url: URL.createObjectURL(blob), error: null };
-            }
-        }
-    } catch (error) {
-        console.error('Error reading clipboard data:', error);
-        return { url: null, error: 'Error reading clipboard data. Are you trying to paste a file from your system?' };
-    }
-    return { url: null, error: 'No valid clipboard data found' };
+function openClipboardHelper() {
+    chrome.runtime.sendMessage({ action: "openClipboardHelper" });
 }
 
-
-async function pasteFileIntoInput(fileInput, overlay) {
-    try {
-        const clipboardItems = await navigator.clipboard.read();
-        const result = await processClipboardItems(clipboardItems, fileInput);
-        if (!result.success) {
-            const clipboardMessage = overlay.querySelector('div');
-            clipboardMessage.style.display = 'block';
-        }
-        console.debug('Paste result:', result);
-        return { success: true };
-    } catch (error) {
-        console.error('Error pasting file from clipboard:', error);
-        return { success: false, error: error.message };
-    }
+function pasteFileIntoInput(fileInput, data) {
+    const blob = dataURLtoBlob(data.fileDataUrl);
+    const fileExtension = data.mimeType.split('/')[1] || 'bin';
+    const fileName = `pasted-file-${generateRandomString(6)}.${fileExtension}`;
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(new File([blob], fileName, { type: data.mimeType }));
+    fileInput.files = dataTransfer.files;
+    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+    removeOverlayImmediately();
 }
-
-async function processClipboardItems(clipboardItems, inputElement) {
-    if (!clipboardItems.length) {
-        return { success: false, error: 'No items in clipboard' };
-    }
-
-    for (const item of clipboardItems) {
-        const types = item.types || [];
-        for (const type of types) {
-            if (type.startsWith('image/')) {
-                const blob = await item.getType(type);
-                let fileName = 'clipboard-file';
-
-                if (item.name) {
-                    fileName = item.name;
-                } else {
-                    const extension = type.split('/')[1];
-                    const randomString = generateRandomString(6);
-                    fileName = `clipboard-file-${randomString}.${extension}`;
-                }
-
-                const file = new File([blob], fileName, { type: type });
-                const fileList = new DataTransfer();
-                fileList.items.add(file);
-                inputElement.files = fileList.files;
-                inputElement.dispatchEvent(new Event('change', { bubbles: true }));
-
-                return { success: true };
-            } else if (type === 'text/html') {
-                const html = await item.getType(type);
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const imgElement = doc.querySelector('img');
-                if (imgElement && imgElement.src && imgElement.src.startsWith('data:image/')) {
-                    const imageUrl = imgElement.src;
-                    const blob = await fetch(imageUrl).then(response => response.blob());
-                    const extension = imageUrl.split(';')[0].split('/')[1];
-                    const fileName = `clipboard-file.${extension}`;
-
-                    const file = new File([blob], fileName, { type: `image/${extension}` });
-                    const fileList = new DataTransfer();
-                    fileList.items.add(file);
-                    inputElement.files = fileList.files;
-                    inputElement.dispatchEvent(new Event('change', { bubbles: true }));
-
-                    return { success: true };
-                }
-            } else if (type.startsWith('text/')) {
-                const textData = await item.getType(type);
-                const extension = type.split('/')[1];
-                const randomString = generateRandomString(6);
-                const fileName = `clipboard-text-${randomString}.${extension}`;
-
-                const blob = new Blob([textData], { type: type });
-                const file = new File([blob], fileName, { type: type });
-                const fileList = new DataTransfer();
-                fileList.items.add(file);
-                inputElement.files = fileList.files;
-                inputElement.dispatchEvent(new Event('change', { bubbles: true }));
-
-                return { success: true };
-            } else if (type === 'application/pdf') {
-                const pdfData = await item.getType(type);
-                const randomString = generateRandomString(6);
-                const fileName = `clipboard-file-${randomString}.pdf`;
-
-                const blob = new Blob([pdfData], { type: 'application/pdf' });
-                const file = new File([blob], fileName, { type: 'application/pdf' });
-                const fileList = new DataTransfer();
-                fileList.items.add(file);
-                inputElement.files = fileList.files;
-                inputElement.dispatchEvent(new Event('change', { bubbles: true }));
-
-                return { success: true };
-            }
-        }
-    }
-
-    return { success: false, error: 'No readable file found in clipboard items' };
-}
-
 
 // --- Event Handlers ---
 function handleFileInputInteraction(fileInput) {
@@ -471,6 +390,20 @@ function shouldPreventDefault(fileInput) {
 
 
 // --- Event Listeners ---
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    if (request.fileDataUrl && request.mimeType) {
+        clipboardData = {
+            fileDataUrl: request.fileDataUrl,
+            mimeType: request.mimeType
+        };
+        sendResponse({ success: true }); 
+    } else {
+        sendResponse({ success: false, error: 'No file data provided.' }); 
+    }
+    return true;
+});
+
+
 document.addEventListener('focusin', function(event) {
     if (event.target.tagName.toLowerCase() === 'input' && event.target.type === 'file' && !event.target.hasAttribute('webkitdirectory')) {
         console.debug('Focusin event:', event);
