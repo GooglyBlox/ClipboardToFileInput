@@ -447,13 +447,35 @@ function handleNewFileInput(fileInput) {
     }
 }
 
+Object.defineProperty(HTMLInputElement.prototype, 'showPicker', {
+    configurable: true,
+    enumerable: true,
+    writable: true,
+    value: function() {
+        if (this.type === 'file') {
+            handleNewFileInput(this);
+            if (typeof this.__showPickerOriginal === 'function') {
+                this.__showPickerOriginal();
+            }
+        } else if (typeof this.__showPickerOriginal === 'function') {
+            this.__showPickerOriginal();
+        }
+    }
+});
+
+if (!HTMLInputElement.prototype.__showPickerOriginal) {
+    HTMLInputElement.prototype.__showPickerOriginal = HTMLInputElement.prototype.showPicker;
+}
+
 const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
-            if (node.nodeType === Node.ELEMENT_NODE && node.matches('input[type="file"]')) {
-                handleNewFileInput(node);
-            } else if (node.nodeType === Node.ELEMENT_NODE && node.hasChildNodes()) {
-                const fileInputs = node.querySelectorAll('input[type="file"]');
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                if (node.matches('input[type="file"]')) {
+                    handleNewFileInput(node);
+                }
+
+                const fileInputs = node.querySelectorAll ? node.querySelectorAll('input[type="file"]') : [];
                 fileInputs.forEach((fileInput) => {
                     handleNewFileInput(fileInput);
                 });

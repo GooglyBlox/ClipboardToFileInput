@@ -19,7 +19,7 @@
     ],
     "web_accessible_resources": [
         {
-            "resources": ["clipboard-helpers/clipboard-helper.html", "clipboard-helpers/clipboard-helper.js"],
+            "resources": ["clipboard-helpers/clipboard-helper.html", "clipboard-helpers/clipboard-helper.js", "clipboard-helpers/clipboard-access-helper.js"],
             "matches": ["<all_urls>"]
         }
     ],
