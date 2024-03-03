@@ -123,35 +123,11 @@ function preventDefaultClickHandler(event) {
     event.preventDefault();
 }
 
-function findNearestFileInput(element) { // why do I have this here again..? I'm almost afraid to delete it
-    let currentElement = element;
-    let searchDepth = 0;
-    const maxDepth = 5;
-
-    while (currentElement && searchDepth < maxDepth) {
-        if (currentElement.tagName.toLowerCase() === 'input' && currentElement.type === 'file' && !currentElement.hasAttribute('webkitdirectory')) {
-            return currentElement;
-        }
-        let sibling = currentElement.previousElementSibling;
-        while (sibling) {
-            if (sibling.tagName.toLowerCase() === 'input' && sibling.type === 'file' && !sibling.hasAttribute('webkitdirectory')) {
-                return sibling;
-            }
-            sibling = sibling.previousElementSibling;
-        }
-        currentElement = currentElement.parentElement;
-        searchDepth++;
-    }
-    return null;
-}
-
-function dataURLtoBlob(dataurl) {
-    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
-        bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n); // yes I know atob() is deprecated I'll deal with it later by replacing it with a typed array
-    while(n--){
-        u8arr[n] = bstr.charCodeAt(n);
-    }
-    return new Blob([u8arr], {type:mime});
+async function dataURLtoBlob(dataurl) {
+    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1];
+    
+    const res = await fetch(dataurl);
+    return await res.blob();
 }
 
 // --- Overlay Functions ---
