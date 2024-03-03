@@ -57,12 +57,6 @@ function createImagePreviewElement() {
     return imagePreview;
 }
 
-function createSpacerElement(height) {
-    const spacer = document.createElement('div');
-    spacer.style.height = height + 'px';
-    return spacer;
-}
-
 function createTextLabelElement(text) {
     const label = document.createElement('div');
     label.textContent = text;
@@ -90,14 +84,6 @@ function removeDragOverStyles(element) {
     element.style.backgroundColor = originalStyles.backgroundColor;
 }
 
-
-function applyFileReadyStyles(element) {
-    Object.assign(element.style, {
-        border: '2px solid #28a745',
-        backgroundColor: 'rgba(40, 167, 69, 0.1)'
-    });
-}
-
 function generateRandomString(length) {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     let result = '';
@@ -107,20 +93,10 @@ function generateRandomString(length) {
     return result;
 }
 
-function isHidden(element) {
-    const style = window.getComputedStyle(element);
-    return style.display === 'none' || style.visibility === 'hidden';
-}
-
 function triggerDefaultFileDialog(inputElement) {
     setTimeout(() => {
         inputElement.click();
     }, 100);
-}
-
-
-function preventDefaultClickHandler(event) {
-    event.preventDefault();
 }
 
 async function dataURLtoBlob(dataurl) {
