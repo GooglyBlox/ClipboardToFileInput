@@ -302,15 +302,18 @@ function openClipboardHelper() {
     chrome.runtime.sendMessage({ action: "openClipboardHelper" });
 }
 
-function pasteFileIntoInput(fileInput, data) {
-    const blob = dataURLtoBlob(data.fileDataUrl);
+async function pasteFileIntoInput(fileInput, data) {
+    const blob = await dataURLtoBlob(data.fileDataUrl);
     const fileExtension = data.mimeType.split('/')[1] || 'bin';
     const fileName = `pasted-file-${generateRandomString(6)}.${fileExtension}`;
+    const file = new File([blob], fileName, { type: data.mimeType });
     const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(new File([blob], fileName, { type: data.mimeType }));
+    dataTransfer.items.add(file);
     fileInput.files = dataTransfer.files;
     fileInput.dispatchEvent(new Event('change', { bubbles: true }));
     removeOverlayImmediately();
+
+    console.log('Uploaded file base64 URL:', data.fileDataUrl);
 }
 
 // --- Event Handlers ---
