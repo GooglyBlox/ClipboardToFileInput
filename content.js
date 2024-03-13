@@ -318,7 +318,12 @@ function openClipboardHelper() {
 async function pasteFileIntoInput(fileInput, data) {
     try {
         const blob = await dataURLtoBlob(data.fileDataUrl);
-        const fileExtension = data.mimeType.split('/')[1] || 'bin';
+        let fileExtension;
+        if (data.mimeType === 'image/webp') {
+            fileExtension = 'webp';
+        } else {
+            fileExtension = data.mimeType.split('/')[1] || 'bin';
+        }
         const fileName = `pasted-file-${generateRandomString(6)}.${fileExtension}`;
         const file = new File([blob], fileName, { type: data.mimeType });
         const dataTransfer = new DataTransfer();

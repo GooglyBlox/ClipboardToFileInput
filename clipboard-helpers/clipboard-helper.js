@@ -6,26 +6,32 @@ async function readClipboard() {
             console.log('Processing clipboard item:', clipboardItem);
             for (const type of clipboardItem.types) {
                 console.log('Found type in clipboard item:', type);
-                const blob = await clipboardItem.getType(type);
-                console.log('Blob retrieved:', blob);
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    console.log('Blob converted to Data URL:', reader.result);
-                    chrome.runtime.sendMessage({ fileDataUrl: reader.result, mimeType: type }, (response) => {
-                        if (chrome.runtime.lastError) {
-                            console.error(`Error in sending message: ${chrome.runtime.lastError.message}`);
-                        } else {
-                            console.log('Message sent to background script, response:', response);
-                            chrome.runtime.sendMessage({ closeTab: true });
+                if (type.startsWith('image/') || type === 'application/octet-stream') {
+                    const blob = await clipboardItem.getType(type);
+                    console.log('Blob retrieved:', blob);
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        console.log('Blob converted to Data URL:', reader.result);
+                        let mimeType = type;
+                        if (type === 'application/octet-stream' && blob.type === 'image/webp') {
+                            mimeType = 'image/webp';
                         }
-                    });
-                };
-                reader.onerror = (error) => {
-                    console.error('Error reading blob:', error);
-                    chrome.runtime.sendMessage({ closeTab: true });
-                };
-                reader.readAsDataURL(blob);
-                return;
+                        chrome.runtime.sendMessage({ fileDataUrl: reader.result, mimeType: mimeType }, (response) => {
+                            if (chrome.runtime.lastError) {
+                                console.error(`Error in sending message: ${chrome.runtime.lastError.message}`);
+                            } else {
+                                console.log('Message sent to background script, response:', response);
+                                chrome.runtime.sendMessage({ closeTab: true });
+                            }
+                        });
+                    };
+                    reader.onerror = (error) => {
+                        console.error('Error reading blob:', error);
+                        chrome.runtime.sendMessage({ closeTab: true });
+                    };
+                    reader.readAsDataURL(blob);
+                    return;
+                }
             }
         }
         setTimeout(() => {
