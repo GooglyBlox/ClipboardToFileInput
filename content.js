@@ -1,24 +1,27 @@
-// Dear user:
-// When I wrote this code, only god and I knew how it worked.
-// Now, only god knows it!
-// Will go back to clean up my code a little later.
-
 // --- Global Variables ---
-const originalStyles = {};
 let isBrowseButtonClicked = false;
 let dragEnterCounter = 0;
 let clipboardData = null;
-
+let lastShowOverlayTime = 0;
+const DEBOUNCE_DELAY = 200;
+const originalStyles = {};
 
 // --- Utility Functions ---
 function createOverlay() {
     const overlay = document.createElement('div');
     overlay.id = 'custom-file-upload-overlay';
-    Object.assign(overlay.style, {
-        position: 'fixed', left: '0', top: '0', width: '100%', height: '100%',
-        backgroundColor: 'rgba(0, 0, 0, 0.7)', display: 'flex',
-        justifyContent: 'center', alignItems: 'center', zIndex: '10000'
-    });
+    overlay.style.cssText = `
+        position: fixed; left: 0; top: 0; width: 100%; height: 100%;
+        background-color: rgba(15, 17, 17, 0.7); display: flex;
+        justify-content: center; align-items: center; z-index: 10000;
+        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    `;
+
+    const styleLink = document.createElement('link');
+    styleLink.rel = 'stylesheet';
+    styleLink.href = chrome.runtime.getURL('css/styles.css');
+    overlay.appendChild(styleLink);
+
     return overlay;
 }
 
@@ -29,43 +32,46 @@ function removeOverlay(overlay) {
 }
 
 function applyButtonStyles(button) {
-    Object.assign(button.style, {
-        padding: '10px 20px', marginRight: '10px', border: 'none', borderRadius: '5px',
-        cursor: 'pointer', background: '#007BFF', color: 'white', fontWeight: 'bold',
-        transition: 'background-color 0.3s ease'
+    button.style.cssText = `
+        padding: 16px 32px; margin: 0 10px; border: none; border-radius: 50px;
+        cursor: pointer; background: #085592; color: #e8e6e3; font-weight: 500;
+        transition: all 0.3s ease; font-size: 16px; text-transform: uppercase;
+        box-shadow: rgba(0, 0, 0, 0.1) 0px 4px 6px, rgba(0, 0, 0, 0.08) 0px 1px 3px;
+    `;
+
+    button.addEventListener('mouseenter', () => {
+        button.style.transform = 'translateY(-2px)';
+        button.style.boxShadow = '0 7px 14px rgba(0, 0, 0, 0.12), 0 3px 6px rgba(0, 0, 0, 0.08)';
     });
 
-    button.onmouseenter = () => button.style.backgroundColor = '#0056b3';
-    button.onmouseleave = () => button.style.backgroundColor = '#007BFF';
+    button.addEventListener('mouseleave', () => {
+        button.style.transform = 'translateY(0)';
+        button.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08)';
+    });
+
+    button.addEventListener('click', () => {
+        button.style.transform = 'translateY(1px)';
+        button.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)';
+    });
 }
 
 function createImagePreviewElement() {
     const imagePreview = document.createElement('img');
-    Object.assign(imagePreview.style, {
-        maxWidth: '600px',
-        maxHeight: '600px',
-        height: 'auto',
-        borderRadius: '5px',
-        border: '1px solid #ccc',
-        padding: '5px',
-        backgroundColor: '#f8f8f8',
-        objectFit: 'contain',
-        marginBottom: '10px',
-        display: 'block',
-        margin: '0 auto'
-    });
+    imagePreview.style.cssText = `
+        max-width: 100%; max-height: 400px; height: auto; border-radius: 10px;
+        object-fit: contain; margin-bottom: 30px; display: block; margin: 0 auto;
+        box-shadow: rgba(0, 0, 0, 0.1) 0px 15px 30px;
+    `;
     return imagePreview;
 }
 
 function createTextLabelElement(text) {
     const label = document.createElement('div');
     label.textContent = text;
-    Object.assign(label.style, {
-        color: '#000',
-        fontWeight: 'bold',
-        textAlign: 'center',
-        marginBottom: '10px'
-    });
+    label.style.cssText = `
+        color: #c8c3bc; text-align: center; margin-bottom: 20px;
+        text-transform: uppercase; letter-spacing: 1px;
+    `;
     return label;
 }
 
@@ -73,10 +79,9 @@ function applyDragOverStyles(element) {
     originalStyles.border = element.style.border;
     originalStyles.backgroundColor = element.style.backgroundColor;
 
-    Object.assign(element.style, {
-        border: '2px dashed #007bff',
-        backgroundColor: 'rgba(0, 123, 255, 0.1)'
-    });
+    element.style.border = '3px dashed #2196F3';
+    element.style.backgroundColor = 'rgba(33, 150, 243, 0.1)';
+    element.style.transition = 'all 0.3s ease';
 }
 
 function removeDragOverStyles(element) {
@@ -94,25 +99,29 @@ function generateRandomString(length) {
 }
 
 function triggerDefaultFileDialog(inputElement) {
-    setTimeout(() => {
-        inputElement.click();
-    }, 100);
+    setTimeout(() => inputElement.click(), 100);
 }
 
 async function dataURLtoBlob(dataurl) {
-    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1];
-    
+    const arr = dataurl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
     const res = await fetch(dataurl);
     return await res.blob();
 }
 
 // --- Overlay Functions ---
 async function showCustomFileUploadOverlay(fileInput) {
+    const currentTime = Date.now();
+    if (currentTime - lastShowOverlayTime < DEBOUNCE_DELAY) {
+        return;
+    }
+    lastShowOverlayTime = currentTime;
+
     if (isBrowseButtonClicked) {
         isBrowseButtonClicked = false;
         return;
     }
-
+    
     let existingOverlay = document.getElementById('custom-file-upload-overlay');
     if (existingOverlay) {
         removeOverlay(existingOverlay);
@@ -123,10 +132,26 @@ async function showCustomFileUploadOverlay(fileInput) {
     setupCloseOverlayEvents(existingOverlay);
 
     const container = document.createElement('div');
-    Object.assign(container.style, {
-        padding: '20px', background: 'white', borderRadius: '10px', textAlign: 'center',
-        boxShadow: '0 5px 15px rgba(0, 0, 0, 0.3)'
-    });
+    container.style.cssText = `
+        padding: 40px; background-color: #0f1111; border-radius: 20px; text-align: center;
+        position: relative; overflow: hidden;
+    `;
+    
+    const backgroundEffect = document.createElement('div');
+    backgroundEffect.style.cssText = `
+        position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+        background: linear-gradient(45deg, #0a6ab6, #145ea8);
+        transform: rotate(-45deg); opacity: 0.1; z-index: -1;
+    `;
+    container.appendChild(backgroundEffect);
+
+    const imagePreview = createImagePreviewElement();
+    const imageLabel = createTextLabelElement("Image Preview");
+    imageLabel.style.color = '#c8c3bc';
+    imagePreview.style.display = 'none';
+    imageLabel.style.display = 'none';
+
+    container.append(imageLabel, imagePreview);
 
     const pasteButton = document.createElement('button');
     pasteButton.textContent = 'Paste File';
@@ -134,8 +159,6 @@ async function showCustomFileUploadOverlay(fileInput) {
     pasteButton.onclick = () => {
         if (clipboardData) {
             pasteFileIntoInput(fileInput, clipboardData);
-        } else {
-            openClipboardHelper();
         }
     };
 
@@ -148,48 +171,59 @@ async function showCustomFileUploadOverlay(fileInput) {
         triggerDefaultFileDialog(fileInput);
     };
 
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.cssText = `
+        display: flex; justify-content: center; align-items: center; margin-top: 30px;
+    `;
+
     fileInput.addEventListener('change', () => {
         isBrowseButtonClicked = false;
+        clipboardData = null;
     }, { once: true });
-
-
-    const imagePreview = createImagePreviewElement();
-    const imageLabel = createTextLabelElement("Image Preview");
-
-    imagePreview.style.display = 'none';
-    imageLabel.style.display = 'none';
-
-    container.appendChild(imageLabel);
-
-    if (clipboardData && clipboardData.mimeType.startsWith('image/')) {
-        imagePreview.src = clipboardData.fileDataUrl;
-        imagePreview.style.display = 'block';
-        imageLabel.style.display = 'block';
-    }
 
     if (!clipboardData && !isBrowseButtonClicked) {
         openClipboardHelper();
     }
 
+    buttonContainer.appendChild(pasteButton);
+    buttonContainer.appendChild(browseButton);
+
     const clipboardMessage = document.createElement('div');
-    Object.assign(clipboardMessage.style, {
-        color: 'red',
-        fontWeight: 'bold',
-        textAlign: 'center',
-        display: 'none',
-        marginBottom: '10px'
-    });
+    clipboardMessage.style.cssText = `
+        color: #f54e42; text-align: center;
+        display: none; margin-bottom: 20px;
+    `;
     clipboardMessage.textContent = 'Awaiting image from clipboard...';
 
     container.appendChild(clipboardMessage);
-    container.append(imageLabel, imagePreview, pasteButton, browseButton);
-    existingOverlay.append(container);
+    container.append(buttonContainer);
+    existingOverlay.appendChild(container);
     fadeInOverlay(existingOverlay);
     setupDragAndDropEvents(container, fileInput, imagePreview);
     existingOverlay.onclick = () => {
         clipboardData = null;
         removeOverlay(existingOverlay);
     };
+
+    await new Promise(resolve => {
+        const checkClipboardData = () => {
+            if (clipboardData) {
+                resolve();
+            } else {
+                setTimeout(checkClipboardData, 100);
+            }
+        };
+        checkClipboardData();
+    });
+
+    if (clipboardData && clipboardData.mimeType.startsWith('image/')) {
+        imagePreview.src = clipboardData.fileDataUrl;
+        imagePreview.style.display = 'block';
+        imageLabel.style.display = 'block';
+    } else {
+        imagePreview.style.display = 'none';
+        imageLabel.style.display = 'none';
+    }
 }
 
 function fadeInOverlay(overlay) {
@@ -201,48 +235,55 @@ function fadeInOverlay(overlay) {
 }
 
 function setupCloseOverlayEvents(overlay) {
-    document.addEventListener('keydown', function(event) {
+    document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
             removeOverlay(overlay);
         }
     });
 
-    overlay.addEventListener('click', function(event) {
+    overlay.addEventListener('click', (event) => {
         if (event.target === overlay) {
             removeOverlay(overlay);
         }
     });
 }
 
-function removeOverlayImmediately() { // really just a second way for me to remove the overlay, its messy but I'll put in the work to clean it up later
-    const overlay = document.getElementById('custom-file-upload-overlay');
-    if (overlay && overlay.parentNode) {
-        overlay.parentNode.removeChild(overlay);
-    } else {
-        console.error('Overlay not found');
-    }
-}
-
-
 // --- Drag and Drop Functions ---
 function setupDragAndDropEvents(container, fileInput, imagePreview) {
-    container.addEventListener('dragover', handleDragOver, false);
-    container.addEventListener('dragenter', event => handleDragEnter(event, container), false);
-    container.addEventListener('dragleave', event => handleDragLeave(event, container), false);
-    container.addEventListener('drop', event => handleDrop(event, fileInput, container, imagePreview), false);
+    const handleDragEvents = (event, handler) => {
+        event.stopPropagation();
+        event.preventDefault();
+        handler(event, container);
+    };
 
-    let buttons = container.querySelectorAll('button');
-    buttons.forEach(button => {
-        button.addEventListener('dragover', handleDragOver, false);
-        button.addEventListener('dragenter', event => handleDragEnter(event, container), false);
-        button.addEventListener('dragleave', event => handleDragLeave(event, container), false);
-        button.addEventListener('drop', event => handleDrop(event, fileInput, container, imagePreview), false);
+    const handleDrop = (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        dragEnterCounter = 0;
+        removeDragOverStyles(container);
+        const files = event.dataTransfer.files;
+    
+        if (files.length > 0) {
+            prepareFilesForUpload(fileInput, files);
+            removeOverlay(document.getElementById('custom-file-upload-overlay'));
+        }
+    };
+
+    container.addEventListener('dragover', (event) => handleDragEvents(event, handleDragOver));
+    container.addEventListener('dragenter', (event) => handleDragEvents(event, handleDragEnter));
+    container.addEventListener('dragleave', (event) => handleDragEvents(event, handleDragLeave));
+    container.addEventListener('drop', (event) => handleDrop(event));
+
+    const buttons = container.querySelectorAll('button');
+    buttons.forEach((button) => {
+        button.addEventListener('dragover', (event) => handleDragEvents(event, handleDragOver));
+        button.addEventListener('dragenter', (event) => handleDragEvents(event, handleDragEnter));
+        button.addEventListener('dragleave', (event) => handleDragEvents(event, handleDragLeave));
+        button.addEventListener('drop', (event) => handleDrop(event));
     });
 }
 
 function handleDragEnter(event, container) {
-    event.stopPropagation();
-    event.preventDefault();
     dragEnterCounter++;
     if (dragEnterCounter === 1) {
         applyDragOverStyles(container);
@@ -250,8 +291,6 @@ function handleDragEnter(event, container) {
 }
 
 function handleDragLeave(event, container) {
-    event.stopPropagation();
-    event.preventDefault();
     dragEnterCounter--;
     if (dragEnterCounter === 0) {
         removeDragOverStyles(container);
@@ -259,32 +298,7 @@ function handleDragLeave(event, container) {
 }
 
 function handleDragOver(event) {
-    event.stopPropagation();
-    event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
-}
-
-function handleDrop(event, fileInput, container, imagePreview) {
-    event.stopPropagation();
-    event.preventDefault();
-    dragEnterCounter = 0;
-    removeDragOverStyles(container);
-    const files = event.dataTransfer.files;
-
-    if (files.length > 0) {
-        if (files[0].type.startsWith('image/')) {
-            const imageSrc = URL.createObjectURL(files[0]);
-
-            imagePreview.src = imageSrc;
-            imagePreview.style.display = 'block';
-            container.appendChild(imagePreview);
-        } else {
-            // ¯\_(ツ)_/¯
-        }
-
-        prepareFilesForUpload(fileInput, files);
-        removeOverlayImmediately();
-    }
 }
 
 function prepareFilesForUpload(fileInput, files) {
@@ -296,24 +310,27 @@ function prepareFilesForUpload(fileInput, files) {
     fileInput.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
-
 // --- Clipboard Functions ---
 function openClipboardHelper() {
     chrome.runtime.sendMessage({ action: "openClipboardHelper" });
 }
 
 async function pasteFileIntoInput(fileInput, data) {
-    const blob = await dataURLtoBlob(data.fileDataUrl);
-    const fileExtension = data.mimeType.split('/')[1] || 'bin';
-    const fileName = `pasted-file-${generateRandomString(6)}.${fileExtension}`;
-    const file = new File([blob], fileName, { type: data.mimeType });
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
-    fileInput.files = dataTransfer.files;
-    fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-    removeOverlayImmediately();
+    try {
+        const blob = await dataURLtoBlob(data.fileDataUrl);
+        const fileExtension = data.mimeType.split('/')[1] || 'bin';
+        const fileName = `pasted-file-${generateRandomString(6)}.${fileExtension}`;
+        const file = new File([blob], fileName, { type: data.mimeType });
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+        removeOverlay(document.getElementById('custom-file-upload-overlay'));
 
-    console.log('Uploaded file base64 URL:', data.fileDataUrl);
+        console.log('Uploaded file base64 URL:', data.fileDataUrl);
+    } catch (error) {
+        console.error("Error pasting file into input:", error);
+    }
 }
 
 // --- Event Handlers ---
@@ -321,23 +338,21 @@ function shouldPreventDefault(fileInput) {
     return !isBrowseButtonClicked;
 }
 
-
 // --- Event Listeners ---
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.fileDataUrl && request.mimeType) {
         clipboardData = {
             fileDataUrl: request.fileDataUrl,
             mimeType: request.mimeType
         };
-        sendResponse({ success: true }); 
+        sendResponse({ success: true });
     } else {
-        sendResponse({ success: false, error: 'No file data provided.' }); 
+        sendResponse({ success: false, error: 'No file data provided.' });
     }
     return true;
 });
 
-
-document.addEventListener('focusin', function(event) {
+document.addEventListener('focusin', (event) => {
     if (event.target.tagName.toLowerCase() === 'input' && event.target.type === 'file' && !event.target.hasAttribute('webkitdirectory')) {
         console.debug('Focusin event:', event);
         event.preventDefault();
@@ -345,7 +360,7 @@ document.addEventListener('focusin', function(event) {
     }
 }, true);
 
-document.addEventListener('paste', async function(event) {
+document.addEventListener('paste', async (event) => {
     const activeElement = document.activeElement;
     if (activeElement.tagName.toLowerCase() === 'input' && activeElement.type === 'file') {
         console.debug('Paste event:', event);
@@ -359,40 +374,82 @@ document.addEventListener('paste', async function(event) {
 });
 
 document.addEventListener("click", async (event) => {
-    let target;
-  
-    if (event.target.matches("input[type=file]:not([webkitdirectory])")) {
-        target = event.target;
-    } else {
-        const path = event.path || (event.composedPath && event.composedPath());
-        if (path && path[0].matches("input[type=file]:not([webkitdirectory])")) {
-        target = path[0];
+    const fileInput = findFileInput(event.target);
+
+    if (fileInput) {
+        if (isBrowseButtonClicked) {
+            isBrowseButtonClicked = false;
+            return;
+        }
+
+        event.preventDefault();
+        await showCustomFileUploadOverlay(fileInput);
+    }
+});
+
+function findFileInput(element) {
+    if (element.tagName.toLowerCase() === 'input' && element.type === 'file') {
+        return element;
+    }
+
+    if (element.tagName.toLowerCase() === 'label' && element.control && element.control.type === 'file') {
+        return element.control;
+    }
+
+    let currentElement = element;
+    while (currentElement) {
+        if (currentElement.tagName.toLowerCase() === 'label' && currentElement.control && currentElement.control.type === 'file') {
+            return currentElement.control;
+        }
+        currentElement = currentElement.parentElement;
+    }
+
+    const allFileInputs = document.querySelectorAll('input[type="file"]:not([webkitdirectory])');
+    for (const fileInput of allFileInputs) {
+        if (fileInput.offsetParent === null) {
+            return fileInput;
         }
     }
-  
-    if (target) {
-        handleNewFileInput(target);
-    }
-  });
 
+    return null;
+}
+
+const fileInputSelector = 'input[type="file"]:not([webkitdirectory])';
 
 function handleNewFileInput(fileInput) {
-    if (!fileInput.__customFileUploadHandled) {
-        fileInput.__customFileUploadHandled = true;
+    if (!fileInputWeakMap.has(fileInput)) {
+        const customFileUploadHandled = {
+            value: true,
+            writable: true
+        };
+        const showPickerOriginal = {
+            value: fileInput.showPicker,
+            writable: true
+        };
+        fileInputWeakMap.set(fileInput, {
+            customFileUploadHandled,
+            showPickerOriginal
+        });
 
         fileInput.addEventListener('click', (event) => {
             if (shouldPreventDefault(fileInput)) {
                 event.preventDefault();
-                showCustomFileUploadOverlay(fileInput);
+                showCustomFileUploadOverlay(fileInput).catch(error => {
+                    console.error("Error in showCustomFileUploadOverlay:", error);
+                });
             }
         });
 
         fileInput.addEventListener('paste', async (event) => {
-            const result = await pasteFileIntoInput(fileInput);
-            if (result.success) {
-                event.preventDefault();
-            } else {
-                console.error(result.error);
+            try {
+                const result = await pasteFileIntoInput(fileInput);
+                if (result.success) {
+                    event.preventDefault();
+                } else {
+                    console.error(result.error);
+                }
+            } catch (error) {
+                console.error("Error in pasteFileIntoInput:", error);
             }
         });
 
@@ -408,10 +465,9 @@ Object.defineProperty(HTMLInputElement.prototype, 'showPicker', {
     writable: true,
     value: function() {
         if (this.type === 'file') {
-            handleNewFileInput(this);
-            if (typeof this.__showPickerOriginal === 'function') {
-                this.__showPickerOriginal();
-            }
+            showCustomFileUploadOverlay(this).catch(error => {
+                console.error("Error in showCustomFileUploadOverlay:", error);
+            });
         } else if (typeof this.__showPickerOriginal === 'function') {
             this.__showPickerOriginal();
         }
@@ -422,15 +478,17 @@ if (!HTMLInputElement.prototype.__showPickerOriginal) {
     HTMLInputElement.prototype.__showPickerOriginal = HTMLInputElement.prototype.showPicker;
 }
 
+const fileInputWeakMap = new WeakMap();
+
 const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
             if (node.nodeType === Node.ELEMENT_NODE) {
-                if (node.matches('input[type="file"]')) {
+                if (node.matches(fileInputSelector)) {
                     handleNewFileInput(node);
                 }
 
-                const fileInputs = node.querySelectorAll ? node.querySelectorAll('input[type="file"]') : [];
+                const fileInputs = node.querySelectorAll ? node.querySelectorAll(fileInputSelector) : [];
                 fileInputs.forEach((fileInput) => {
                     handleNewFileInput(fileInput);
                 });
@@ -439,4 +497,4 @@ const observer = new MutationObserver((mutations) => {
     });
 });
 
-observer.observe(document.body, { childList: true, subtree: true });
+observer.observe(document.body, { childList: true, subtree: true }); 

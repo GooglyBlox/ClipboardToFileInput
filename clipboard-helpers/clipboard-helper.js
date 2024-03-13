@@ -22,17 +22,27 @@ async function readClipboard() {
                 };
                 reader.onerror = (error) => {
                     console.error('Error reading blob:', error);
+                    chrome.runtime.sendMessage({ closeTab: true });
                 };
                 reader.readAsDataURL(blob);
                 return;
             }
         }
+        setTimeout(() => {
+            chrome.runtime.sendMessage({ closeTab: true });
+        }, 2000);
     } catch (error) {
         console.error('Error accessing clipboard:', error);
-        if (error.message.includes("Document is not focused")) { // this is so hacky but this error is so unnecessary
+        if (error.message.includes("Document is not focused")) {
             chrome.runtime.sendMessage({ closeTab: true });
         } else {
-            // document.dispatchEvent(new CustomEvent('clipboardAccessFailed')); -- not too necessary right now, will maybe handle logic for this another time
+            const errorMessage = document.createElement('div');
+            errorMessage.textContent = 'An error occurred while accessing the clipboard.';
+            errorMessage.style.cssText = `
+                color: #F44336; font-weight: 500; text-align: center; margin-top: 20px;
+                font-size: 18px;
+            `;
+            document.body.appendChild(errorMessage);
         }
     }
 }
