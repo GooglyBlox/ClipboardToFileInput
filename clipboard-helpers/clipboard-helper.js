@@ -31,6 +31,28 @@ async function readClipboard() {
                     };
                     reader.readAsDataURL(blob);
                     return;
+                } else if (type === 'text/plain') {
+                    const text = await clipboardItem.getType(type);
+                    console.log('Text retrieved:', text);
+                    const blob = new Blob([text], { type: 'text/plain' });
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        console.log('Text converted to Data URL:', reader.result);
+                        chrome.runtime.sendMessage({ fileDataUrl: reader.result, mimeType: 'text/plain' }, (response) => {
+                            if (chrome.runtime.lastError) {
+                                console.error(`Error in sending message: ${chrome.runtime.lastError.message}`);
+                            } else {
+                                console.log('Message sent to background script, response:', response);
+                                chrome.runtime.sendMessage({ closeTab: true });
+                            }
+                        });
+                    };
+                    reader.onerror = (error) => {
+                        console.error('Error reading text:', error);
+                        chrome.runtime.sendMessage({ closeTab: true });
+                    };
+                    reader.readAsDataURL(blob);
+                    return;
                 }
             }
         }

@@ -321,6 +321,8 @@ async function pasteFileIntoInput(fileInput, data) {
         let fileExtension;
         if (data.mimeType === 'image/webp') {
             fileExtension = 'webp';
+        } else if (data.mimeType === 'text/plain') {
+            fileExtension = 'txt';
         } else {
             fileExtension = data.mimeType.split('/')[1] || 'bin';
         }
@@ -379,9 +381,10 @@ document.addEventListener('paste', async (event) => {
 });
 
 document.addEventListener("click", async (event) => {
-    const fileInput = findFileInput(event.target);
+    const target = event.target;
+    if (target.tagName.toLowerCase() === 'input' && target.type === 'file') {
+        const fileInput = target;
 
-    if (fileInput) {
         if (isBrowseButtonClicked) {
             isBrowseButtonClicked = false;
             return;

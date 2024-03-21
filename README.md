@@ -6,7 +6,9 @@ ClipboardToFileInput is a Chrome extension that enables pasting clipboard conten
 The goal is to put this on the Google Chrome Web Store soon! Once I'm confident this is production-ready, I'll put it up and attach a link to this repository. The extension will always stay open source, and updates on the Chrome Web Store version will be reflected in this repository.
 
 ## ⚠️NOTICE
-This extension CANNOT read your file system. That means that pasting items from your file system is not possible (due to Chrome's restrictive extension permissions). You can only paste what was copied from within your browser.
+This extension CANNOT read your file system. That means that pasting items from your file system is not possible (due to Chrome's restrictive extension permissions). You can only paste what was copied from within your browser or other applications.
+
+Additionally, copying and pasting GIFs will likely not work. This is an [issue that has existed for years](https://issues.chromium.org/issues/40357537) with Chromium, so it is out of my hands.
 
 ## Preview
 ![Demo](https://github.com/GooglyBlox/ClipboardToFileInput/blob/main/images/preview.gif?raw=true)
