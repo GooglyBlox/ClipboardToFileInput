@@ -47,6 +47,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     }
                 });
             }
+            chrome.tabs.update(originTabId, { active: true }, () => {
+                if (chrome.runtime.lastError) {
+                    console.error("Failed to activate the origin tab:", chrome.runtime.lastError.message);
+                }
+            });
         });
         return true;
     }

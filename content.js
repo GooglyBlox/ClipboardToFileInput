@@ -161,6 +161,7 @@ async function showCustomFileUploadOverlay(fileInput) {
             pasteFileIntoInput(fileInput, clipboardData);
         }
     };
+    pasteButton.style.display = 'none';
 
     const browseButton = document.createElement('button');
     browseButton.textContent = 'Browse Files';
@@ -215,6 +216,12 @@ async function showCustomFileUploadOverlay(fileInput) {
         };
         checkClipboardData();
     });
+
+    if (clipboardData && (clipboardData.mimeType.startsWith('image/') || clipboardData.mimeType === 'text/plain')) {
+        pasteButton.style.display = 'inline-block';
+    } else {
+        pasteButton.style.display = 'none';
+    }
 
     if (clipboardData && clipboardData.mimeType.startsWith('image/')) {
         imagePreview.src = clipboardData.fileDataUrl;
@@ -312,7 +319,12 @@ function prepareFilesForUpload(fileInput, files) {
 
 // --- Clipboard Functions ---
 function openClipboardHelper() {
-    chrome.runtime.sendMessage({ action: "openClipboardHelper" });
+    chrome.runtime.sendMessage({ action: "openClipboardHelper" }, (response) => {
+        if (chrome.runtime.lastError) {
+            console.error("Error in openClipboardHelper:", chrome.runtime.lastError.message);
+            chrome.runtime.sendMessage({ closeTab: true });
+        }
+    });
 }
 
 async function pasteFileIntoInput(fileInput, data) {

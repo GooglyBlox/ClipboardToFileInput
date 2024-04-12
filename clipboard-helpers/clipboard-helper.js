@@ -2,6 +2,11 @@ async function readClipboard() {
     try {
         const clipboardItems = await navigator.clipboard.read();
         console.log('Clipboard items retrieved:', clipboardItems);
+
+        if (clipboardItems.length === 0) {
+            chrome.runtime.sendMessage({ closeTab: true });
+            return;
+        }
         for (const clipboardItem of clipboardItems) {
             console.log('Processing clipboard item:', clipboardItem);
             for (const type of clipboardItem.types) {
@@ -56,9 +61,7 @@ async function readClipboard() {
                 }
             }
         }
-        setTimeout(() => {
-            chrome.runtime.sendMessage({ closeTab: true });
-        }, 2000);
+        chrome.runtime.sendMessage({ closeTab: true });
     } catch (error) {
         console.error('Error accessing clipboard:', error);
         if (error.message.includes("Document is not focused")) {
