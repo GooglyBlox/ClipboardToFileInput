@@ -5,12 +5,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     if (request.action === "openClipboardHelper") {
         originTabId = sender.tab.id;
-        chrome.tabs.create({ url: chrome.runtime.getURL('clipboard-helpers/clipboard-helper.html'), active: true }, function(tab) {
+        chrome.windows.create({ url: chrome.runtime.getURL('clipboard-helpers/clipboard-helper.html'), type: 'popup' }, function(window) {
             if (chrome.runtime.lastError) {
-                console.error("Error creating clipboard helper tab:", chrome.runtime.lastError.message);
+                console.error("Error creating clipboard helper window:", chrome.runtime.lastError.message);
                 sendResponse({ success: false, error: chrome.runtime.lastError.message });
             } else {
-                console.log("Clipboard helper tab created with id:", tab.id);
+                console.log("Clipboard helper window created with id:", window.id);
                 sendResponse({ success: true });
             }
         });
