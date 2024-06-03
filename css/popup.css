@@ -1,56 +1,86 @@
 body {
-    font-family: 'Montserrat', sans-serif;
-    background-color: #f8f9fa;
+    font-family: 'Poppins', sans-serif;
     margin: 0;
     padding: 0;
+    background-color: #f8f9fa;
 }
 
 .container {
-    width: 300px;
-    background-color: #fff;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 320px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
     overflow: hidden;
 }
 
 .header {
-    background-color: #6c63ff;
-    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 20px;
-    text-align: center;
+    background-color: #6c63ff;
+    color: #ffffff;
 }
 
 .header h1 {
+    font-size: 20px;
+    font-weight: 700;
     margin: 0;
+}
+
+.header a {
+    color: #ffffff;
     font-size: 24px;
-    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.3s ease;
+}
+
+.header a:hover {
+    transform: rotate(360deg);
 }
 
 .content {
-    padding: 20px;
-    text-align: center;
+    padding: 24px;
 }
 
 .content p {
     font-size: 16px;
     line-height: 1.6;
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+    color: #333333;
 }
 
-.image-container {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
+#clearPreferences {
+    background-color: #ff6b6b;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+    width: 100%;
 }
 
-.image-container img {
-    width: 80px;
-    height: 80px;
+#clearPreferences:hover {
+    background-color: #ff4f4f;
+    transform: translateY(-2px);
 }
 
 .footer {
-    background-color: #f1f3f5;
-    padding: 10px;
+    padding: 16px 24px;
     text-align: center;
+    background-color: #f1f3f5;
     font-size: 14px;
-    color: #6c757d;
+    color: #666666;
+}
+
+.footer a {
+    color: #6c63ff;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.footer .fa-heart {
+    color: #ff6b6b;
 }

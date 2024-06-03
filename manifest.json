@@ -1,9 +1,9 @@
 {
     "manifest_version": 3,
     "name": "Clipboard to File Input",
-    "version": "2.8",
-    "description": "Allows pasting from clipboard into file inputs. Source: https://github.com/GooglyBlox/ClipboardToFileInput",
-    "permissions": ["clipboardRead", "activeTab", "scripting", "tabs"],
+    "version": "2.9",
+    "description": "Allows pasting from clipboard into file inputs.",
+    "permissions": ["clipboardRead", "activeTab", "scripting", "tabs", "storage"],
     "action": {
         "default_popup": "popup.html",
         "default_icon": "images/icon.png"
@@ -19,7 +19,13 @@
     ],
     "web_accessible_resources": [
         {
-            "resources": ["clipboard-helpers/clipboard-helper.html", "clipboard-helpers/clipboard-helper.js", "clipboard-helpers/clipboard-access-helper.js", "css/styles.css"],
+            "resources": [
+                "clipboard-helpers/clipboard-helper.html",
+                "clipboard-helpers/clipboard-helper.js",
+                "clipboard-helpers/clipboard-access-helper.js",
+                "css/styles.css",
+                "popup.js"
+            ],
             "matches": ["<all_urls>"]
         }
     ],

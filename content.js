@@ -380,16 +380,49 @@ document.addEventListener('focusin', (event) => {
 }, true);
 
 document.addEventListener('paste', async (event) => {
-    const activeElement = document.activeElement;
-    if (activeElement.tagName.toLowerCase() === 'input' && activeElement.type === 'file') {
-        console.debug('Paste event:', event);
-        const result = await pasteFileIntoInput(activeElement);
-        if (result.success) {
-            event.preventDefault();
-        } else {
-            console.error(result.error);
-        }
+    const site = window.location.hostname;
+    const fileInput = document.querySelector('input[type="file"]:not([webkitdirectory])');
+
+    if (!fileInput) {
+        return;
     }
+
+    chrome.runtime.sendMessage({ action: 'getSitePreference', site }, async (response) => {
+        const enabled = response.enabled;
+        if (enabled === undefined) {
+            const confirm = window.confirm('ClipboardToFileInput: Do you want to enable automatic pasting for this site? You can reset your preferences later by clicking the extension icon.');
+            chrome.runtime.sendMessage({ action: 'saveSitePreference', site, enabled: confirm });
+            if (!confirm) return;
+        } else if (!enabled) {
+            return;
+        }
+
+        const activeElement = document.activeElement;
+        if (activeElement.tagName.toLowerCase() === 'input' && activeElement.type === 'file') {
+            const result = await pasteFileIntoInput(activeElement);
+            if (result.success) {
+                event.preventDefault();
+            } else {
+                console.error(result.error);
+            }
+        } else if (fileInput) {
+            const clipboardItems = await navigator.clipboard.read();
+            for (const clipboardItem of clipboardItems) {
+                for (const type of clipboardItem.types) {
+                    if (type.startsWith('image/')) {
+                        const blob = await clipboardItem.getType(type);
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const dataUrl = reader.result;
+                            pasteFileIntoInput(fileInput, { fileDataUrl: dataUrl, mimeType: type });
+                        };
+                        reader.readAsDataURL(blob);
+                        return;
+                    }
+                }
+            }
+        }
+    });
 });
 
 document.addEventListener("click", async (event) => {
@@ -517,4 +550,4 @@ const observer = new MutationObserver((mutations) => {
     });
 });
 
-observer.observe(document.body, { childList: true, subtree: true }); 
+observer.observe(document.body, { childList: true, subtree: true });

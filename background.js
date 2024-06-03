@@ -54,5 +54,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
         });
         return true;
+    } else if (request.action === 'saveSitePreference') {
+        const { site, enabled } = request;
+        chrome.storage.sync.get({ sitePreferences: {} }, (data) => {
+            const sitePreferences = data.sitePreferences;
+            sitePreferences[site] = enabled;
+            chrome.storage.sync.set({ sitePreferences }, () => {
+                sendResponse({ success: true });
+            });
+        });
+        return true;
+    } else if (request.action === 'getSitePreference') {
+        const { site } = request;
+        chrome.storage.sync.get({ sitePreferences: {} }, (data) => {
+            const sitePreferences = data.sitePreferences;
+            sendResponse({ enabled: sitePreferences[site] });
+        });
+        return true;
     }
 });
