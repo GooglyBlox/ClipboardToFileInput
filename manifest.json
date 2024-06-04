@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Clipboard to File Input",
-    "version": "2.9",
+    "version": "2.9.1",
     "description": "Allows pasting from clipboard into file inputs.",
     "permissions": ["clipboardRead", "activeTab", "scripting", "tabs", "storage"],
     "action": {
@@ -14,7 +14,8 @@
     "content_scripts": [
         {
             "matches": ["<all_urls>"],
-            "js": ["content.js"]
+            "js": ["content.js"],
+            "all_frames": true
         }
     ],
     "web_accessible_resources": [

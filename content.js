@@ -440,6 +440,30 @@ document.addEventListener("click", async (event) => {
     }
 });
 
+function injectScriptIntoIframes() {
+    const iframes = document.querySelectorAll('iframe');
+    iframes.forEach(iframe => {
+        try {
+            const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
+            if (iframeDocument) {
+                const script = iframeDocument.createElement('script');
+                script.src = chrome.runtime.getURL('content.js');
+                iframeDocument.head.appendChild(script);
+            }
+        } catch (e) {
+            console.error('Error injecting script into iframe:', e);
+        }
+    });
+}
+
+injectScriptIntoIframes();
+
+const iframeObserver = new MutationObserver(() => {
+    injectScriptIntoIframes();
+});
+
+iframeObserver.observe(document.body, { childList: true, subtree: true });
+
 function findFileInput(element) {
     if (element.tagName.toLowerCase() === 'input' && element.type === 'file') {
         return element;
