@@ -1,10 +1,12 @@
 let originTabId = null;
+let originFrameId = null;
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log("Background script received a message:", request);
 
     if (request.action === "openClipboardHelper") {
         originTabId = sender.tab.id;
+        originFrameId = request.frameId;
         chrome.windows.create({ url: chrome.runtime.getURL('clipboard-helpers/clipboard-helper.html'), type: 'popup' }, function(window) {
             if (chrome.runtime.lastError) {
                 console.error("Error creating clipboard helper window:", chrome.runtime.lastError.message);
@@ -16,7 +18,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         });
         return true;
     } else if (request.fileDataUrl) {
-        chrome.tabs.sendMessage(originTabId, { fileDataUrl: request.fileDataUrl, mimeType: request.mimeType }, response => {
+        chrome.tabs.sendMessage(originTabId, { 
+            fileDataUrl: request.fileDataUrl, 
+            mimeType: request.mimeType, 
+            frameId: originFrameId 
+        }, response => {
             if (chrome.runtime.lastError) {
                 console.error(`Error in sending message to content script: ${chrome.runtime.lastError.message}`);
             } else {
