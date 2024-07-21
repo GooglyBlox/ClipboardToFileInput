@@ -29,8 +29,16 @@
     function setupIframeObserver() {
         if (document.body) {
             injectScriptIntoIframes();
-            const iframeObserver = new MutationObserver(() => {
-                injectScriptIntoIframes();
+            const iframeObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'childList') {
+                        const addedNodes = Array.from(mutation.addedNodes);
+                        const addedIframes = addedNodes.filter(node => node.tagName === 'IFRAME');
+                        if (addedIframes.length > 0) {
+                            injectScriptIntoIframes();
+                        }
+                    }
+                });
             });
             iframeObserver.observe(document.body, { childList: true, subtree: true });
         } else {

@@ -340,5 +340,4 @@
         }
     }, true);
 
-    console.log('Consistent overlay file input interceptor is active!');
 })();
