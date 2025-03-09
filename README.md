@@ -28,7 +28,7 @@ Additionally, copying and pasting GIFs will likely not work. This is a long-stan
 ## 💡 Usage
 1. Copy any file to your clipboard.
 2. Click on any file input field.
-3. Click `Paste` to paste your clipboard content (accept clipboard permissions if prompted).
+3. Click `Paste File` to paste your clipboard content (accept clipboard permissions if prompted).
 4. Click `Browse Files` to input files from your filesystem instead of clipboard.
 5. Drag and Drop files from your file system to the overlay box for ease-of-upload from your file manager.
 
