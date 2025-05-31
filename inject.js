@@ -17,6 +17,8 @@
   let clipboardData = null;
   let lastShowOverlayTime = 0;
   let originalStyles = {};
+  let pasteKeyHandler = null;
+  let escapeKeyHandler = null;
 
   /**
    * Creates the overlay container for the file upload dialog
@@ -69,6 +71,15 @@
       setTimeout(() => {
         if (overlay.parentNode) {
           overlay.parentNode.removeChild(overlay);
+        }
+        // Remove keydown listeners when overlay is removed
+        if (escapeKeyHandler) {
+          document.removeEventListener("keydown", escapeKeyHandler);
+          escapeKeyHandler = null;
+        }
+        if (pasteKeyHandler) {
+          document.removeEventListener("keydown", pasteKeyHandler);
+          pasteKeyHandler = null;
         }
       }, 300);
     }
@@ -375,7 +386,7 @@
     // Paste Button
     const pasteButton = document.createElement("button");
     pasteButton.textContent = "Paste File";
-    pasteButton.title = "Paste file from clipboard";
+    pasteButton.title = "Paste file from clipboard (Ctrl+V or Cmd+V)";
     applyButtonStyles(pasteButton, "primary");
     pasteButton.style.display = "none"; // Hidden until clipboard data is available
     pasteButton.onclick = async () => {
@@ -452,15 +463,31 @@
       }
     };
 
-    // Close overlay when pressing ESC key
-    const escapeHandler = (event) => {
+    // Define and add Escape key handler
+    if (escapeKeyHandler) {
+      document.removeEventListener("keydown", escapeKeyHandler);
+    }
+    escapeKeyHandler = (event) => {
       if (event.key === "Escape") {
         removeOverlay(existingOverlay);
-        document.removeEventListener("keydown", escapeHandler);
       }
     };
+    document.addEventListener("keydown", escapeKeyHandler);
 
-    document.addEventListener("keydown", escapeHandler);
+    // Define and add Paste (Ctrl+V/Cmd+V) key handler
+    if (pasteKeyHandler) {
+      document.removeEventListener("keydown", pasteKeyHandler);
+    }
+    pasteKeyHandler = (event) => {
+      if ((event.ctrlKey || event.metaKey) && (event.key === "v" || event.key === "V")) {
+        if (clipboardData && pasteButton && pasteButton.style.display !== "none") {
+          event.preventDefault();
+          event.stopPropagation();
+          pasteButton.click();
+        }
+      }
+    };
+    document.addEventListener("keydown", pasteKeyHandler);
   }
 
   /**
@@ -506,7 +533,10 @@
     if (!overlay) return;
 
     const container = overlay.querySelector("div");
-    const pasteButton = container.querySelector("button:nth-child(1)");
+    if (!container) return;
+
+    // Query for elements within the container
+    const pasteButton = Array.from(container.querySelectorAll("button")).find(btn => btn.textContent === "Paste File");
     const imagePreview = container.querySelector("img");
     const textPreview = container.querySelector(
       'div[style*="font-family: monospace"]'
@@ -514,48 +544,56 @@
     const fileInfo = container.querySelector('div[style*="color: #a0a0a0"]');
 
     if (!clipboardData) {
+      if (pasteButton) pasteButton.style.display = "none";
       return;
     }
 
     // Show paste button for valid clipboard data
     if (
-      clipboardData.mimeType.startsWith("image/") ||
-      clipboardData.mimeType === "text/plain"
+      pasteButton &&
+      (clipboardData.mimeType.startsWith("image/") ||
+        clipboardData.mimeType === "text/plain")
     ) {
       pasteButton.style.display = "inline-block";
+    } else if (pasteButton) {
+      pasteButton.style.display = "none";
     }
 
     // Update file info
-    fileInfo.style.display = "block";
-    const extension = getFileExtension(clipboardData.mimeType);
-    const fileName = `pasted-file.${extension}`;
+    if (fileInfo) {
+      fileInfo.style.display = "block";
+      const extension = getFileExtension(clipboardData.mimeType);
+      const fileName = `pasted-file.${extension}`;
 
-    // Estimate file size from data URL
-    const dataSize = clipboardData.fileDataUrl.length * 0.75; // Rough estimate of base64 decoded size
-    fileInfo.textContent = `File: ${fileName} (${formatFileSize(dataSize)})`;
+      // Estimate file size from data URL
+      const dataSize = clipboardData.fileDataUrl.length * 0.75; // Rough estimate of base64 decoded size
+      fileInfo.textContent = `File: ${fileName} (${formatFileSize(dataSize)})`;
+    }
 
     // Update preview based on file type
-    if (clipboardData.mimeType.startsWith("image/")) {
-      imagePreview.src = clipboardData.fileDataUrl;
-      imagePreview.style.display = "block";
-      textPreview.style.display = "none";
-    } else if (clipboardData.mimeType === "text/plain") {
-      try {
-        // Decode the base64 data URL to get the text content
-        const base64Content = clipboardData.fileDataUrl.split(",")[1];
-        const decodedText = atob(base64Content);
+    if (imagePreview && textPreview) {
+      if (clipboardData.mimeType.startsWith("image/")) {
+        imagePreview.src = clipboardData.fileDataUrl;
+        imagePreview.style.display = "block";
+        textPreview.style.display = "none";
+      } else if (clipboardData.mimeType === "text/plain") {
+        try {
+          // Decode the base64 data URL to get the text content
+          const base64Content = clipboardData.fileDataUrl.split(",")[1];
+          const decodedText = atob(base64Content);
 
-        // Limit preview to first 500 characters
-        const limitedText =
-          decodedText.length > 500
-            ? decodedText.substring(0, 500) + "..."
-            : decodedText;
+          // Limit preview to first 500 characters
+          const limitedText =
+            decodedText.length > 500
+              ? decodedText.substring(0, 500) + "..."
+              : decodedText;
 
-        textPreview.textContent = limitedText;
-        textPreview.style.display = "block";
-        imagePreview.style.display = "none";
-      } catch (error) {
-        console.error("Error displaying text preview:", error);
+          textPreview.textContent = limitedText;
+          textPreview.style.display = "block";
+          imagePreview.style.display = "none";
+        } catch (error) {
+          console.error("Error displaying text preview:", error);
+        }
       }
     }
   }
@@ -596,19 +634,17 @@
       if (files.length === 0) return;
 
       // Check if multiple files are allowed
-      if (files.length > 1 && !fileInput.multiple) {
-        const fileInfo = container.querySelector(
-          'div[style*="color: #a0a0a0"]'
-        );
-        fileInfo.textContent = `Only one file can be uploaded. Using: ${files[0].name}`;
-        fileInfo.style.display = "block";
-        fileInfo.style.color = "#ff9800";
+      const fileInfoElement = container.querySelector('div[style*="color: #a0a0a0"]');
+      if (files.length > 1 && !fileInput.multiple && fileInfoElement) {
+        fileInfoElement.textContent = `Only one file can be uploaded. Using: ${files[0].name}`;
+        fileInfoElement.style.display = "block";
+        fileInfoElement.style.color = "#ff9800";
       }
 
       // Transfer files to the input
       fileInput.files = files;
-      fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-      fileInput.dispatchEvent(new Event("input", { bubbles: true }));
+      fileInput.dispatchEvent(new Event("change", {bubbles: true}));
+      fileInput.dispatchEvent(new Event("input", {bubbles: true}));
 
       // Close the overlay
       removeOverlay(overlay);
@@ -646,14 +682,14 @@
       const blob = await dataURLtoBlob(data.fileDataUrl);
       const extension = getFileExtension(data.mimeType);
       const fileName = `pasted-file-${generateRandomString(6)}.${extension}`;
-      const file = new File([blob], fileName, { type: data.mimeType });
+      const file = new File([blob], fileName, {type: data.mimeType});
 
       const dataTransfer = new DataTransfer();
       dataTransfer.items.add(file);
 
       fileInput.files = dataTransfer.files;
-      fileInput.dispatchEvent(new Event("change", { bubbles: true }));
-      fileInput.dispatchEvent(new Event("input", { bubbles: true }));
+      fileInput.dispatchEvent(new Event("change", {bubbles: true}));
+      fileInput.dispatchEvent(new Event("input", {bubbles: true}));
     } catch (error) {
       console.error("Error pasting file into input:", error);
       throw error;
